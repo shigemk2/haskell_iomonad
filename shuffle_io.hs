@@ -2,12 +2,13 @@
 import GHC.Base
 import System.Random
 
-shuffle [] = return []
-shuffle xs = do
-    n <- getStdRandom $ randomR (0, length xs - 1) :: IO Int
-    xs' <- shuffle $ take n xs ++ drop (n + 1) xs
-    return $ (xs !! n) : xs'
+shuffle [] = IO $ \s -> (# s, [] #)
+shuffle xs = IO $ \s ->
+    let (# s1, n #) = unIO (getStdRandom $ randomR (0, length xs - 1) :: IO Int) s
+        (# s2, xs' #) =  unIO (shuffle $ take n xs ++ drop (n + 1) xs) s1
+        in (# s2, (xs !! n) : xs' #)
 
 main = IO $ \s ->
-    let (# s1, r #) = unIO (print =<< shuffle [1..9]) s
-    in  (# s1, r #)
+    let (# s1, xs #) = unIO (shuffle [1..9]) s
+        (# s2, r #) = unIO (print xs) s1
+    in  (# s2, r #)
